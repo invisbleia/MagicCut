@@ -257,8 +257,10 @@ def _filter(layout, fg_h, facecam=None):
                     f"[base]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[b];"
                     f"[fc]crop={fw}:{fh}:{fx}:{fy},scale={PIP_W}:{pip_h},setsar=1[p];"
                     f"[b][p]overlay={W - PIP_W - PIP_MARGIN}:{PIP_MARGIN}[v0];")
-    if layout == "crop" or (layout == "gameplay" and not facecam):
+    if layout == "crop":
         return f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[v0];"
+    # "gameplay" without a found facecam used to fall back to a centre crop, which is exactly what cuts a
+    # small webcam in the corner out of the picture. The whole frame with a blurred fill keeps it visible.
     return (f"[0:v]fps={config.OUT_FPS},split=2[a][b];"
             f"[a]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=6:2,"
             f"scale={W}:{H},eq=brightness=-0.14:saturation=1.15[bg];"
@@ -285,7 +287,9 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, clip.get("layout", "blur"))
     face = clip.get("facecam")
     if layout == "gameplay" and not (face and len(face) == 4):
-        layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
+        # No webcam found: keep the whole frame, or a cam in the corner gets cropped out. geometry() is asked
+        # again because the blurred fill needs its own picture height.
+        layout, fg_h, hook_y, cap_y = geometry(src_w, src_h, "blur")
     hook_y = _hook_y(layout, hook_y, face)
     # The heading is its own switch: a creator may want the captions and not the big text across the top.
     hook_text = clip.get("hook", "") if clip.get("hook_text", True) else ""

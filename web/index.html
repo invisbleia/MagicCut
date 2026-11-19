@@ -383,7 +383,7 @@ img.av{object-fit:cover}
 .composer.compact .tile-o{background:var(--muted)}
 .tile-o:enabled:hover,.tile-o:focus-visible{background:#EDE3DB;color:var(--text)}
 .tile-o[aria-pressed=true]{background:var(--brand);color:var(--brand-ink);font-weight:800;box-shadow:inset 0 0 0 2px rgba(42,26,18,.18),0 0 0 2px var(--brand) inset}
-.tile-o[aria-pressed=true]::after{content:"âœ“";position:absolute;top:2px;right:7px;font-size:12px;font-weight:800;color:var(--brand-ink);text-shadow:0 0 3px #fff}
+.tile-o[aria-pressed=true]::after{content:"✓";position:absolute;top:2px;right:7px;font-size:12px;font-weight:800;color:var(--brand-ink);text-shadow:0 0 3px #fff}
 .cap-prev{height:54px;border-radius:7px;background:#1E1612;display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;font-size:14px;line-height:1;color:#fff;letter-spacing:0;-webkit-text-stroke:1px #000;paint-order:stroke fill}
 .cap-prev b{font-weight:inherit}
 .lay-prev{height:54px;border-radius:7px;background:#1E1612;display:grid;place-items:center}
@@ -1123,9 +1123,9 @@ function liveOn(c) { return Object.entries(c.profiles || {}).filter(([k, p]) => 
 function statusBadge(c) {
   if (c.live_job) return `<span class="sbadge rec"><i></i>Recording</span>`;
   const on = liveOn(c);
-  if (on.length) { const [k, p] = on[0]; return `<span class="sbadge live"><i></i>Live on ${PLAT[k].name}${p.viewers ? " Â· " + fmtK(p.viewers) + " watching" : ""}</span>`; }
+  if (on.length) { const [k, p] = on[0]; return `<span class="sbadge live"><i></i>Live on ${PLAT[k].name}${p.viewers ? " · " + fmtK(p.viewers) + " watching" : ""}</span>`; }
   if (!Object.keys(c.channels || {}).length) return `<span class="sbadge">No channel yet</span>`;
-  return `<span class="sbadge"><i></i>Offline${c.auto_watch ? " Â· records when live" : ""}</span>`;
+  return `<span class="sbadge"><i></i>Offline${c.auto_watch ? " · records when live" : ""}</span>`;
 }
 const cav = c => { const r = c.live_job || liveOn(c).length ? " ring" : "";
   return c.profile?.pic && c.profile.channel === c.channel ? `<img class="avatar${r}" src="${avatarUrl(c)}" alt="">` : `<span class="avatar${r}">${esc((c.name || "?")[0].toUpperCase())}</span>`; };
@@ -1152,7 +1152,7 @@ function openPop(p, anchor) {
 async function openBell() {
   const p = $("#bellpop");
   if (!p.hidden) return closePops();
-  p.innerHTML = `<div class="pop-head"><h3>Notifications</h3></div><div class="pop-empty">Loadingâ€¦</div>`;
+  p.innerHTML = `<div class="pop-head"><h3>Notifications</h3></div><div class="pop-empty">Loading…</div>`;
   openPop(p, $("[data-act=bell]"));
   try {
     const d = await api("/api/notifications");
@@ -1432,7 +1432,7 @@ function renderCoreChoice(val) {
   const card = n => (n || "").replace(/\((R|TM|r|tm)\)/g, "").replace(/^(NVIDIA|AMD|Intel)\s+/i, "")
     .replace(/\s+/g, " ").trim().slice(0, 18);
   const best = r.encoders.find(e => e.id === r.auto);
-  const autoSmall = r.auto === "cpu" ? "CPU" : `${best?.label || "GPU"}${best?.gpu ? " Â· " + card(best.gpu) : ""}`;
+  const autoSmall = r.auto === "cpu" ? "CPU" : `${best?.label || "GPU"}${best?.gpu ? " · " + card(best.gpu) : ""}`;
   const items = [{v:"auto", label:"Auto", small:autoSmall},
     ...gpus.map(e => ({v:e.id, label:e.label, small:card(e.gpu) || "GPU"})),
     {v:"cpu", label:"CPU", small:"x264"},
@@ -1447,7 +1447,7 @@ function renderOpts() {
   const r = S.status.render || {encoders: [], auto: "cpu"};
   const best = r.encoders.find(e => e.id === r.auto);
   const m = {auto: r.auto === "cpu" ? "Auto (CPU)" : `Auto (${best?.label || "GPU"})`, cpu: "CPU (x264)"};
-  r.encoders.filter(e => e.kind === "gpu" && e.available).forEach(e => { m[e.id] = e.label + (e.gpu ? " Â· " + e.gpu : ""); });
+  r.encoders.filter(e => e.kind === "gpu" && e.available).forEach(e => { m[e.id] = e.label + (e.gpu ? " · " + e.gpu : ""); });
   return m;
 }
 function picker(id, aria, items, val) {
@@ -1560,7 +1560,7 @@ function drawAtt() {
   }).join("");
   h += A.files.map(f => rowHtml(A, {id: f.id, kind: "file", thumb: `<video src="${f.src}#t=1" muted preload="metadata" playsinline></video>`,
     len: f.dur ? fmtLen(f.dur) : "", title: f.file.name,
-    sub: f.state === "error" ? `<em>${esc(f.err)}</em>` : fmtSize(f.file.size) + " Â· uploaded file",
+    sub: f.state === "error" ? `<em>${esc(f.err)}</em>` : fmtSize(f.file.size) + " · uploaded file",
     side: f.state === "up" ? `<span class="ok up">${f.pct < 100 ? f.pct + "%" : "Starting"}</span>` : f.state === "error" ? "" : `<span class="ok">${ic("check")}Ready</span>`,
     bar: f.state === "up" ? f.pct : null})).join("");
   const n = batchUsed(A);
@@ -1576,7 +1576,7 @@ function drawAtt() {
   const b = $("#goBtn");
   if (b) { b.disabled = A.busy;
     const k = A.files.length + A.links.filter(l => l.state === "ok").length;
-    b.innerHTML = A.busy ? `${ic("up")}Sendingâ€¦` : A.queued ? `${ic("clock")}Finding videoâ€¦` : `${ic("scissors")}Make clips${k > 1 ? ` (${k})` : ""}`; }
+    b.innerHTML = A.busy ? `${ic("up")}Sending…` : A.queued ? `${ic("clock")}Finding video…` : `${ic("scissors")}Make clips${k > 1 ? ` (${k})` : ""}`; }
 }
 
 async function lookUp(u) {
@@ -1729,7 +1729,7 @@ function scoreCls(s) { return s >= 80 ? "s-hi" : s >= 60 ? "s-mid" : ""; }
 function postPills(c) {
   return Object.values(c.posts || {}).filter(p => p.status !== "cancelled").map(p => {
     const cls = p.status === "posted" ? "ok" : p.status === "failed" ? "bad" : "warn";
-    const txt = `${esc(p.account_name)} Â· ${p.status === "scheduled" ? clock(p.due_at) : p.status}`;
+    const txt = `${esc(p.account_name)} · ${p.status === "scheduled" ? clock(p.due_at) : p.status}`;
     return p.url ? `<a class="pill ${cls}" href="${esc(p.url)}" target="_blank" rel="noopener">${txt}</a>` : `<span class="pill ${cls}" title="${esc(p.error || "")}">${txt}</span>`;
   }).join("");
 }
@@ -1737,7 +1737,7 @@ function clipHtml(j, c) {
   const m = `/media/${j.id}/`, a = `data-j="${j.id}" data-c="${esc(c.id)}"`;
   const body = c.status === "done" ? `<img src="${m}${esc(c.cover)}?v=${c.version}" alt="" loading="lazy"><span class="veil"><span>${ic("play")}</span></span>`
     : c.status === "error" ? `<span class="making" style="animation:none;color:var(--bad);background:var(--bad-soft)">Could not make this clip. Open it to try again.</span>`
-    : `<span class="making">${c.status === "rendering" ? "Making this clipâ€¦" : "Waiting its turnâ€¦"}</span>`;
+    : `<span class="making">${c.status === "rendering" ? "Making this clip…" : "Waiting its turn…"}</span>`;
   const key = `c:${j.id}:${c.id}`, busyClip = c.status === "queued" || c.status === "rendering";
   return `<article class="clip ${sel().has(key) ? "picked" : ""}">
     <button class="shot" data-act="openclip" ${a} aria-label="Open clip: ${esc(c.title || c.hook)}">${body}
@@ -1768,19 +1768,19 @@ function liveHtml(j) {
   const L = j.live || {elapsed:0, lines:[], level:[], chat:null, checks:0, buffer_sec:0, pending_clips:0};
   return `<div class="livecard">
     <div class="lc-head"><div class="lc-title"><span class="pill live"><span class="dot"></span>Live</span>
-        <h3>${esc(j.title || j.source.name)}</h3><p class="sub">${esc(j.uploader)}${j.uploader ? " Â· " : ""}${esc(j.stage)}</p></div>
+        <h3>${esc(j.title || j.source.name)}</h3><p class="sub">${esc(j.uploader)}${j.uploader ? " · " : ""}${esc(j.stage)}</p></div>
       <div class="lc-acts"><button class="btn primary" data-act="clipnow" data-j="${j.id}" data-s="30">${ic("scissors")}Clip last 30s</button>
         <button class="btn" data-act="clipnow" data-j="${j.id}" data-s="60">Last 60s</button>
         <button class="btn danger" data-act="stoplive" data-j="${j.id}">${ic("stop")}Stop</button></div></div>
     <div class="stats"><div class="stat"><b>${fmt(L.elapsed)}</b><span>Recorded</span></div><div class="stat"><b>${Math.round(L.buffer_sec / 60)} min</b><span>Kept in buffer</span></div>
-      <div class="stat">${everyPick(j.creator, L.every_min ?? 3)}<span>${L.every_min === 0 ? (L.auto?.warming ? "AI checks: learning the stream" : L.auto?.waiting ? "AI checks: jump spotted, checking soon" : `AI checks on jumps Â· ${L.auto?.spikes || 0} so far`) : "AI checks every"}</span></div>
-      <div class="stat"><b>${L.checks}</b><span>AI calls${L.skipped ? ` Â· ${L.skipped} skipped` : ""}${L.rejected ? ` Â· ${L.rejected} turned down` : ""}</span></div><div class="stat"><b>${j.clips.length}</b><span>Clips so far</span></div>
+      <div class="stat">${everyPick(j.creator, L.every_min ?? 3)}<span>${L.every_min === 0 ? (L.auto?.warming ? "AI checks: learning the stream" : L.auto?.waiting ? "AI checks: jump spotted, checking soon" : `AI checks on jumps · ${L.auto?.spikes || 0} so far`) : "AI checks every"}</span></div>
+      <div class="stat"><b>${L.checks}</b><span>AI calls${L.skipped ? ` · ${L.skipped} skipped` : ""}${L.rejected ? ` · ${L.rejected} turned down` : ""}</span></div><div class="stat"><b>${j.clips.length}</b><span>Clips so far</span></div>
       ${L.pending_clips ? `<div class="stat"><b>${L.pending_clips}</b><span>Hand clip being prepared</span></div>` : ""}</div>
     <div class="meters">
       <div class="meter"><h4>Loudness, last minute</h4>${spark(L.level, "", -55, -8)}</div>
       ${L.chat ? `<div class="meter"><h4>Chat messages per second</h4>${spark(L.chat, "chat", 0, Math.max(4, ...L.chat))}</div>` : ""}
-      <div class="meter"><h4>Latest AI decisions</h4><div class="said" style="justify-content:flex-start;color:var(--text)">${(L.verdicts || []).length ? L.verdicts.slice(0, 4).map(v => `<div>${fmt(v.t)} Â· ${v.transcript != null ? "words " + v.transcript : ""}${v.reaction != null ? " Â· reaction " + v.reaction : ""} Â· <span class="sub">${esc(v.result)}</span></div>`).join("") : "<div class='sub'>First check soonâ€¦</div>"}</div></div>
-      <div class="meter"><h4>What was just said</h4><div class="said">${L.lines.length ? L.lines.map(t => `<div>${esc(t)}</div>`).join("") : "<div>Listeningâ€¦</div>"}</div></div>
+      <div class="meter"><h4>Latest AI decisions</h4><div class="said" style="justify-content:flex-start;color:var(--text)">${(L.verdicts || []).length ? L.verdicts.slice(0, 4).map(v => `<div>${fmt(v.t)} · ${v.transcript != null ? "words " + v.transcript : ""}${v.reaction != null ? " · reaction " + v.reaction : ""} · <span class="sub">${esc(v.result)}</span></div>`).join("") : "<div class='sub'>First check soon…</div>"}</div></div>
+      <div class="meter"><h4>What was just said</h4><div class="said">${L.lines.length ? L.lines.map(t => `<div>${esc(t)}</div>`).join("") : "<div>Listening…</div>"}</div></div>
     </div>${j.error ? `<div class="err">${esc(j.error)}</div>` : ""}</div>
     ${j.clips.length ? `<div class="grid" style="margin-bottom:28px">${[...j.clips].reverse().map(c => clipHtml(j, c)).join("")}</div>` : ""}`;
 }
@@ -1789,14 +1789,14 @@ function jobHtml(j) {
   const busy = j.status === "queued" || j.status === "running";
   const who = !creatorId() && j.creator ? S.creators.find(c => c.id === j.creator)?.name : "";
   const meta = [who, j.uploader, j.duration ? fmt(j.duration) + " long" : "", j.clips.length ? j.clips.length + (j.clips.length === 1 ? " clip" : " clips") : "",
-                j.took ? "made in " + fmt(j.took) : "", j.kind === "live" ? "recording, " + j.stage.toLowerCase() : ""].filter(Boolean).map(esc).join(" Â· ");
+                j.took ? "made in " + fmt(j.took) : "", j.kind === "live" ? "recording, " + j.stage.toLowerCase() : ""].filter(Boolean).map(esc).join(" · ");
   const pic = j.thumb ? `<img src="/media/${esc(j.id)}/thumb.jpg" alt="" loading="lazy">` : ic(j.source?.type === "file" ? "film" : "link");
   return `<div class="job-head"><div class="jt"><span class="jthumb">${pic}${j.duration ? `<span class="du">${fmt(j.duration)}</span>` : ""}</span><div style="min-width:0"><h3>${esc(j.title || j.source.name)}</h3><p class="sub">${meta}</p></div></div>
       <div class="row" style="flex-wrap:nowrap;gap:4px">${busy ? "" : `
         ${j.clips.some(c => c.status === "done") ? `<button class="btn sm icon ghost" data-act="dlall" data-j="${j.id}" title="Download all clips of this video" aria-label="Download all clips of this video">${ic("down")}</button>` : ""}
         <button class="btn sm icon ghost" data-act="deljob" data-j="${j.id}" title="Delete" aria-label="Delete this video and its clips">${ic("trash")}</button>
         <label class="selck" title="Select this video and its clips"><input type="checkbox" data-sel="j:${j.id}" ${sel().has("j:" + j.id) ? "checked" : ""} aria-label="Select this video"></label>`}</div></div>
-    ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div><p class="sub">${esc(j.stage)} Â· ${Math.round(j.progress * 100)}%</p>` : ""}
+    ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div><p class="sub">${esc(j.stage)} · ${Math.round(j.progress * 100)}%</p>` : ""}
     ${j.status === "done" && !j.clips.length ? `<p class="sub">${esc(j.stage)}</p>` : ""}
     ${j.error ? `<div class="err">${esc(j.error)}<button class="rep" data-act="report" data-ctx="${esc("Video failed: " + (j.title || j.source.name || "") + " | " + j.error)}">Report this</button></div>` : ""}${j.ai?.note ? `<p class="sub">${esc(j.ai.note)}</p>` : ""}
     ${j.clips.length ? `<div class="grid">${j.clips.map(c => clipHtml(j, c)).join("")}</div>` : ""}`;
@@ -1833,7 +1833,7 @@ function drawSelBar() {
 function zipDownload(ids) {
   if (!ids.length) return toast("None of those clips are ready to download yet.");
   if (ids.length > 150) return toast("That is a lot at once. Download up to 150 clips at a time.", "bad");
-  toast(ids.length === 1 ? "Preparing your clipâ€¦" : `Preparing ${ids.length} clips as one downloadâ€¦`, "ok");
+  toast(ids.length === 1 ? "Preparing your clip…" : `Preparing ${ids.length} clips as one download…`, "ok");
   const a = document.createElement("a"); a.href = "/api/clips.zip?ids=" + encodeURIComponent(ids.join(",")); a.download = ""; document.body.append(a); a.click(); a.remove();
 }
 function askTyped(title, text, mustType, okLabel) {
@@ -1884,8 +1884,8 @@ function channelRows(c) {
       <button class="btn sm" data-act="chadd" data-p="${k}">Connect</button></div>`;
     const ok = pr && pr.channel === url;
     return `<div class="chan">${platLogo(k)}${ok && pr.pic ? `<img class="pic" src="${avatarUrl(c, k)}" alt="">` : ""}
-      <div class="who"><b>${esc(ok && pr.name ? pr.name : url)}</b><span>${esc([PLAT[k].name, ok ? pr.followers : "Looking it upâ€¦"].filter(Boolean).join(" Â· "))}</span></div>
-      ${ok && pr.live_at ? (pr.live ? `<span class="sbadge live"><i></i>Live${pr.viewers ? " Â· " + fmtK(pr.viewers) : ""}</span>` : `<span class="sbadge">Offline</span>`) : ""}
+      <div class="who"><b>${esc(ok && pr.name ? pr.name : url)}</b><span>${esc([PLAT[k].name, ok ? pr.followers : "Looking it up…"].filter(Boolean).join(" · "))}</span></div>
+      ${ok && pr.live_at ? (pr.live ? `<span class="sbadge live"><i></i>Live${pr.viewers ? " · " + fmtK(pr.viewers) : ""}</span>` : `<span class="sbadge">Offline</span>`) : ""}
       ${many ? `<label class="main" title="Start recording uses this channel unless another one is live"><input type="radio" name="mainch" data-act="chmain" data-p="${k}" ${c.channel === url ? "checked" : ""}>Record from</label>` : ""}
       <button class="btn sm icon ghost" data-act="chdel" data-p="${k}" title="Remove" aria-label="Remove ${PLAT[k].name} channel">${ic("x")}</button></div>`;
   }).join("");
@@ -1924,7 +1924,7 @@ function drawCreatorForm() {
         <label class="f">Clips per video<input data-k="max_clips" type="number" min="1" max="50" value="${c.max_clips}"></label>
         <label class="f">Minutes of live stream to keep<input data-k="buffer_min" type="number" value="${c.buffer_min}"></label></div></div>
     <div class="card"><h2>Posting</h2><p class="help">${A.length ? "Choose the accounts this creator's clips go to. One account can be shared by several creators." : "No accounts are connected yet. Connect one in Settings, then come back."}</p>
-      ${A.length ? `<div class="row" style="margin-bottom:16px">${A.map(a => `<label class="ck"><input type="checkbox" data-acc value="${esc(a.id)}" ${c.accounts.includes(a.id) ? "checked" : ""}>${esc(a.label)} Â· ${esc(a.name)}</label>`).join("")}</div>` : `<button class="btn" data-act="go" data-v="settings" style="margin-bottom:16px">${ic("cog")}Open Settings</button>`}
+      ${A.length ? `<div class="row" style="margin-bottom:16px">${A.map(a => `<label class="ck"><input type="checkbox" data-acc value="${esc(a.id)}" ${c.accounts.includes(a.id) ? "checked" : ""}>${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>` : `<button class="btn" data-act="go" data-v="settings" style="margin-bottom:16px">${ic("cog")}Open Settings</button>`}
       <div class="fields"><label class="sw span"><input type="checkbox" data-k="autopost" ${c.autopost ? "checked" : ""}><span>Post new clips automatically<small>Clips that score high enough go out without you approving them.</small></span></label>
         <label class="f">Only auto-post clips scoring at least<input data-k="post_min_score" type="number" min="0" max="100" value="${c.post_min_score}"></label>
         <label class="f">Minutes between posts on one account<input data-k="post_gap_min" type="number" value="${c.post_gap_min}"></label>
@@ -1987,7 +1987,7 @@ function drawOverview() {
       <div class="tile"><i>${ic("radio")}</i><b>${o.recording}</b><span>Recording now</span></div>
       <div class="tile"><i>${ic("scissors")}</i><b>${sum("clips_today")}</b><span>Clips today</span></div>
       <div class="tile"><i>${ic("send")}</i><b>${sum("posted_today")}</b><span>Posted today</span></div>
-      <div class="tile"><i>${ic(sum("failed") ? "warn" : "clock")}</i><b>${sum("queued")}</b><span>Waiting to post${sum("failed") ? ` Â· <span style="color:var(--bad)">${sum("failed")} failed</span>` : ""}</span></div></div>
+      <div class="tile"><i>${ic(sum("failed") ? "warn" : "clock")}</i><b>${sum("queued")}</b><span>Waiting to post${sum("failed") ? ` · <span style="color:var(--bad)">${sum("failed")} failed</span>` : ""}</span></div></div>
     <div class="home-grid">
       <div class="card"><div class="card-head"><div><h2>Activity</h2><p class="sub">Last 14 days</p></div>
           <div class="kpis"><div class="kpi"><b>${d14("clips")}</b><span>Clips made</span></div><div class="kpi"><b>${d14("posted")}</b><span>Posted</span></div>
@@ -2005,7 +2005,7 @@ function drawOverview() {
     <div class="card"><div class="card-head"><div><h2>Post queue</h2><p class="sub">${o.paused ? "Paused. Recording and clipping carry on; nothing is posted." : "Queued clips go out at their scheduled time."}</p></div>
         <button class="btn ${o.paused ? "primary" : ""}" data-act="pause">${ic(o.paused ? "play" : "pause")}${o.paused ? "Resume posting" : "Pause all posting"}</button></div>
       ${o.posts.length ? `<div class="scroll"><table class="stack"><tr><th>When</th><th>Clip</th><th>Creator</th><th>Account</th><th class="num">Views</th><th></th></tr>
-      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "â€“"}</td>
+      ${o.posts.map(p => `<tr><td data-l="Status">${pst(p)}</td><td data-l="Clip" class="c-main">${p.url ? `<a class="lnk" href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a>` : esc(p.title)}${p.error ? `<div class="err" style="margin:2px 0 0">${esc(p.error)}</div>` : ""}</td><td data-l="Creator">${esc(p.creator_name || "None")}</td><td data-l="Account">${esc(p.account_name)}</td><td data-l="Views" class="num">${p.views ?? "–"}</td>
         <td class="c-act" style="text-align:right">${p.status === "scheduled" ? `<button class="btn sm" data-act="pcancel" data-id="${p.id}">Cancel</button>` : p.status === "failed" ? `<button class="btn sm" data-act="pretry" data-id="${p.id}">Retry</button>` : ""}</td></tr>`).join("")}</table></div>`
       : `<p class="help">Nothing queued or posted yet.</p>`}</div>`);
 }
@@ -2032,7 +2032,7 @@ function tokenChart(daily) {
 }
 function hbars(rows) {
   const total = rows.reduce((a, r) => a + r[1], 0) || 1;
-  return rows.length ? `<div class="hbar">${rows.map(r => `<div class="hbar-row"><div class="top"><span>${esc(r[0])}</span><span>${fmtK(r[1])} tokens Â· ${r[2]} call${r[2] === 1 ? "" : "s"}</span></div>
+  return rows.length ? `<div class="hbar">${rows.map(r => `<div class="hbar-row"><div class="top"><span>${esc(r[0])}</span><span>${fmtK(r[1])} tokens · ${r[2]} call${r[2] === 1 ? "" : "s"}</span></div>
     <div class="track"><i style="width:${Math.max(2, r[1] / total * 100)}%"></i></div></div>`).join("")}</div>` : `<p class="help">Nothing yet.</p>`;
 }
 function drawUsage() {
@@ -2077,13 +2077,13 @@ async function drawSettings() {
   const tab = S.stab || setTabs()[0][0], me = S.status.user;
   box.innerHTML = `<div class="set-layout"><nav class="set-nav" aria-label="Settings sections">${setTabs().map(([k, l, i, h]) =>
       `<a href="${pathFor("settings", k)}" class="set-link ${k === tab ? "on" : ""}" data-act="settab" data-k="${k}">${ic(i)}<span><b>${l}</b><small>${h}</small></span></a>`).join("")}</nav>
-    <div class="set-body" id="setbody"><div class="set-load">Loadingâ€¦</div></div></div>`;
+    <div class="set-body" id="setbody"><div class="set-load">Loading…</div></div></div>`;
   const body = $("#setbody");
   try {
     if (tab === "ai") {
       const k = S.ai = await api("/api/ai");
       body.innerHTML = `<section class="set-sec"><h2>AI</h2><p class="help">PeakCut uses an AI model to pick the moments worth clipping and to write hooks, titles and captions. Use your own key from any of these services. You pay that service directly. Without a key, clips are picked by loudness.</p>
-          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Ready</span><span class="sub">${esc(k.label)} Â· ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
+          <div class="ai-state">${k.ready ? `<span class="pill ok">${ic("check")}Ready</span><span class="sub">${esc(k.label)} · ${esc(k.models[0] || "")}</span>` : `<span class="pill warn">Not set up</span><span class="sub">Choose a service, paste your key and pick a model.</span>`}</div>
           <div class="ai-form">
             <label class="f">AI service<select id="ai_provider">${k.providers.map(x => `<option value="${esc(x.id)}" ${x.id === k.provider ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select></label>
             <label class="f">Key<input id="ai_key" type="password" autocomplete="off" spellcheck="false"><span class="hint" id="ai_keyhint"></span></label>
@@ -2193,11 +2193,11 @@ function drawClipDlg(full) {
   const m = `/media/${j.id}/`, sig = c.status + c.version;
   const stage = c.status === "done" ? `<video src="${m}${esc(c.file)}?v=${c.version}" poster="${m}${esc(c.cover)}?v=${c.version}" controls autoplay playsinline></video>`
     : c.status === "error" ? `<div class="err" style="padding:20px;text-align:center">${esc(c.error || "Could not make this clip.")}</div>`
-    : `<span class="making">${c.status === "rendering" ? "Making this clipâ€¦" : "Waiting its turnâ€¦"}</span>`;
+    : `<span class="making">${c.status === "rendering" ? "Making this clip…" : "Waiting its turn…"}</span>`;
   if (full) {
     dlg.innerHTML = `<div class="editor"><div class="stage" id="stage">${stage}</div>
       <div class="panel">
-        <div class="job-head" style="margin:0"><div><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " Â· Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
+        <div class="job-head" style="margin:0"><div><span class="badge ${scoreCls(c.score)}" style="position:static">${c.judges ? "Words " + c.judges.words + (c.judges.reaction ? " · Reaction " + c.judges.reaction : "") : c.score ? "Score " + c.score : "Clipped by hand"}</span>
           <p class="sub" style="margin-top:8px">${esc(c.reason || "")}</p></div><button class="btn icon ghost" data-act="closedlg" aria-label="Close">${ic("x")}</button></div>
         <h3>On the video</h3>
         <label class="f">Big text<input data-f="hook" value="${esc(c.hook)}"></label>
@@ -2214,7 +2214,7 @@ function drawClipDlg(full) {
         <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
-        ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} Â· ${esc(a.name)}</label>`).join("")}</div>
+        ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
           <div class="row"><button class="btn primary" data-act="postnow">${ic("send")}Post now</button><button class="btn" data-act="postqueue">Add to queue</button></div>`
           : `<p class="help">No accounts connected yet. Connect one in Settings.</p>`}
         <div class="row" style="margin-top:auto;padding-top:8px;border-top:1px solid var(--line)">
@@ -2391,7 +2391,7 @@ document.addEventListener("click", async e => {
         timer = setTimeout(async () => {
           try {
             const p = await api("/api/channel-preview?url=" + encodeURIComponent(u)); if (me !== seq) return;
-            box.innerHTML = `<div class="chprev">${p.pic ? `<img src="${p.pic}" alt="">` : `<span class="ph"></span>`}<div><b>${esc(p.name)}</b><span>${esc([p.platform, p.followers].filter(Boolean).join(" Â· "))}</span></div></div>`;
+            box.innerHTML = `<div class="chprev">${p.pic ? `<img src="${p.pic}" alt="">` : `<span class="ph"></span>`}<div><b>${esc(p.name)}</b><span>${esc([p.platform, p.followers].filter(Boolean).join(" · "))}</span></div></div>`;
             const n = $("#nc_name"); if (!n.value.trim() || n.value === auto) { n.value = auto = p.name; }
           } catch (err) { if (me === seq) box.innerHTML = `<div class="chprev bad">${esc(err.message)}</div>`; }
         }, 400);
@@ -2459,7 +2459,7 @@ document.addEventListener("click", async e => {
     if (a === "chmain") return saveChannels(creator().channels, creator().channels[d.p]);
     if (a === "golive") {
       if (!creator().channel) { setTab("setup"); return toast("Connect one of their channels first, then press Start recording.", "bad"); }
-      b.disabled = true; const was = b.innerHTML; b.innerHTML = `<span class="rdot"></span>Startingâ€¦`;
+      b.disabled = true; const was = b.innerHTML; b.innerHTML = `<span class="rdot"></span>Starting…`;
       try {
         // The creator is fixed before asking: starting can take a few seconds, and the person may open another
         // creator meanwhile. The recording must stay with the one whose button was pressed.
@@ -2479,7 +2479,7 @@ document.addEventListener("click", async e => {
       toast("Recording stopped. Clips already made are kept.", "ok");
       api(`/api/live/${d.j}/stop`, {method:"POST"}).catch(e => toast(e.message, "bad")).finally(tick); return;
     }
-    if (a === "clipnow") { await send(`/api/live/${d.j}/clip`, {seconds:Number(d.s)}); return toast(`Clipping the last ${d.s} secondsâ€¦`, "ok"); }
+    if (a === "clipnow") { await send(`/api/live/${d.j}/clip`, {seconds:Number(d.s)}); return toast(`Clipping the last ${d.s} seconds…`, "ok"); }
     if (a === "resendverify") {
       b.disabled = true;
       try { const r = await send("/api/auth/resend-verification"); if (r.verified) { S.status = await api("/api/status"); drawShell(); return toast("Your email is already confirmed.", "ok"); }
@@ -2533,7 +2533,7 @@ document.addEventListener("click", async e => {
       const body = {}; $$("#clipdlg [data-f]").forEach(i => {
         body[i.dataset.f] = i.type === "checkbox" ? i.checked : i.type === "number" ? Number(i.value) : i.value;
       });
-      await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clipâ€¦", "ok"); return tick();
+      await send(`/api/jobs/${D.jid}/clips/${D.cid}/render`, body); toast("Re-making the clip…", "ok"); return tick();
     }
     if (a === "postnow" || a === "postqueue") {
       const accs = $$("#clipdlg [data-pacc]:checked").map(i => i.value);

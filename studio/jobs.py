@@ -669,7 +669,16 @@ def _run_job(job):
             render_one(job, clip, words_now)
 
     cpus = os.cpu_count() or 4
-    renders = ThreadPoolExecutor(2 if cpus < 8 else min(6, cpus // 6))  # more clips made at once on a bigger machine
+    # A hardware encoder carries several clips at once (the T4 has NVENC sessions to spare), so the clips of one
+    # video go out five at a time and the wall-clock time is close to one clip's. The CPU cannot: it stays at one
+    # or two. PEAKCUT_RENDER_WORKERS overrides the guess.
+    if config.RENDER_WORKERS:
+        parallel = max(1, config.RENDER_WORKERS)
+    elif hw.summary()["auto"] != "cpu":
+        parallel = 5
+    else:
+        parallel = 2 if cpus < 8 else min(6, cpus // 6)
+    renders = ThreadPoolExecutor(parallel, thread_name_prefix="render")
     futures = []
     step = BLOCK * 16000 if span > PROGRESSIVE_FROM else hi - lo
     blocks = [(x, min(hi, x + step)) for x in range(lo, hi, step)] or [(lo, hi)]
