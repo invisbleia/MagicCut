@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from . import config, roman
+from . import config, hw, roman
 from .media import NO_WINDOW, run
 
 W, H = config.OUT_W, config.OUT_H
@@ -23,6 +23,20 @@ HOOK = {"font": "Poppins ExtraBold", "size": 96, "ink": "14100E", "box": "FFFFFF
         "max_w": 900}
 FONT_FILES = {"Poppins ExtraBold": "Poppins-ExtraBold.ttf", "Anton": "Anton-Regular.ttf", "Archivo Black": "ArchivoBlack-Regular.ttf"}
 CAP_MAX_W = 960   # captions never run wider than this, whatever is said
+
+# The video encoders, by name. The first entry of each is the pixel format; the rest is given to ffmpeg after
+# "-pix_fmt". A hardware encoder is several times faster than x264 and leaves the processor for the transcript.
+ENCODER_ARGS = {
+    # T4-class NVENC: high quality at 1080x1920. cq 19 is visually clean, p7 is the slowest and best preset,
+    # spatial AQ keeps flat areas (sky, HUD, skin) from banding. Still far faster than the CPU preset.
+    "nvenc": ["yuv420p", "-c:v", "h264_nvenc", "-preset", "p7", "-tune", "hq", "-rc", "vbr", "-cq", "19",
+              "-b:v", "0", "-maxrate", "20M", "-bufsize", "40M", "-spatial-aq", "1", "-aq-strength", "8",
+              "-profile:v", "high", "-level", "4.2"],
+    "qsv": ["nv12", "-c:v", "h264_qsv", "-global_quality", "21", "-preset", "veryslow"],
+    "amf": ["yuv420p", "-c:v", "h264_amf", "-quality", "quality", "-rc", "cqp", "-qp_i", "20", "-qp_p", "22"],
+    "videotoolbox": ["yuv420p", "-c:v", "h264_videotoolbox", "-q:v", "60"],
+    "cpu": ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"],
+}
 
 
 class _Font:
@@ -273,7 +287,9 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     if layout == "gameplay" and not (face and len(face) == 4):
         layout = "crop"     # no webcam found: the game fills the screen, which is still the right shape
     hook_y = _hook_y(layout, hook_y, face)
-    ass = build_ass(words if clip.get("captions", True) else [], start, end, clip.get("hook", ""), clip.get("style", "bounce"),
+    # The heading is its own switch: a creator may want the captions and not the big text across the top.
+    hook_text = clip.get("hook", "") if clip.get("hook_text", True) else ""
+    ass = build_ass(words if clip.get("captions", True) else [], start, end, hook_text, clip.get("style", "bounce"),
                     clip.get("highlight_words", []), hook_y, cap_y)
     # The clip is made in a short work folder and moved into place afterwards. The caption step of ffmpeg cannot
     # open files whose full path is longer than 260 characters on Windows, which a data folder deep inside other
@@ -281,13 +297,14 @@ def render_clip(src: Path, out_dir: Path, name: str, clip: dict, words: list, sr
     # break the filter syntax).
     work = Path(tempfile.mkdtemp(prefix="pk"))
     try:
-        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face)
+        return _render_in(work, src, out_dir, name, start, end, layout, fg_h, ass, face=face,
+                          choice=clip.get("render", "auto"))
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
 
-def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None) -> dict:
-    global _qsv_ok
+def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layout, fg_h, ass: str, face=None,
+               choice="auto") -> dict:
     (work / f"{name}.ass").write_text(ass, encoding="utf-8")
     (work / "f").mkdir()
     for f in config.FONTS_DIR.glob("*.ttf"):
@@ -296,21 +313,16 @@ def _render_in(work: Path, src: Path, out_dir: Path, name: str, start, end, layo
     base = ["ffmpeg", "-y", "-v", "error", "-ss", f"{start:.2f}", "-t", f"{end - start:.2f}", "-i", str(src),
             "-filter_complex", fc, "-map", "[v]", "-map", "0:a:0", "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", "-pix_fmt"]
-    encoders = []
-    if _qsv_ok is not False:
-        encoders.append(("qsv", ["nv12", "-c:v", "h264_qsv", "-global_quality", "23", "-preset", "fast"]))
-    encoders.append(("x264", ["yuv420p", "-c:v", "libx264", "-crf", "21", "-preset", "veryfast"]))
+    # Hardware first (NVENC on a Colab T4, QuickSync on Intel, AMF on AMD), then the others, CPU last. An encoder
+    # that fails is remembered by hw, so a card that cannot open it is tried once, not on every clip.
     err = None
-    for label, enc in encoders:
-        p = subprocess.run(base + enc + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
+    for label in hw.candidates(choice):
+        p = subprocess.run(base + ENCODER_ARGS[label] + [f"{name}.mp4"], cwd=work, capture_output=True, text=True,
                            encoding="utf-8", errors="replace", creationflags=NO_WINDOW, timeout=RENDER_SECONDS)
         if p.returncode == 0:
-            if label == "qsv":
-                _qsv_ok = True
             break
         err = p.stderr[-1200:]
-        if label == "qsv":
-            _qsv_ok = False
+        hw.mark_broken(label)
     else:
         raise RuntimeError(f"Render failed: {err}")
     cover_t = min(1.2, (end - start) / 2)

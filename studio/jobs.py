@@ -11,7 +11,7 @@ import traceback
 import uuid
 from pathlib import Path
 
-from . import brain, config, creators, ctx, facecam, games, load, media, quality, render, roman, safe, transcribe, usage
+from . import brain, config, creators, ctx, facecam, games, hw, load, media, quality, render, roman, safe, transcribe, usage
 
 class _FairQueue:
     """Whose video is next. Each person has their own line and the lines take turns, so someone who adds ten
@@ -108,19 +108,19 @@ _lock = threading.RLock()
 on_clip_ready: list = []   # callbacks (job, clip), run once when a clip first finishes
 
 DEFAULTS = {"max_clips": 6, "min_len": 15, "max_len": 60, "style": "bounce", "layout": "blur", "quality": 720,
-            "range_start": None, "range_end": None, "captions": True}
+            "range_start": None, "range_end": None, "captions": True, "hook_text": True, "render": "auto"}
 
 
-LIMITS = {"max_clips": (1, 20), "min_len": (5, 120), "max_len": (10, 180), "quality": (360, 1080)}
+LIMITS = {"max_clips": (1, 50), "min_len": (5, 120), "max_len": (10, 180), "quality": (360, 1080)}
 
 
 def clean_options(options) -> dict:
     """Only known settings, each inside its allowed range. Raises ValueError on nonsense."""
     out = {}
     for k, v in (options if isinstance(options, dict) else {}).items():
-        if k == "captions":
+        if k in ("captions", "hook_text"):
             if not isinstance(v, bool):
-                raise ValueError("Captions must be on or off.")
+                raise ValueError("Captions and the hook text are on or off.")
             out[k] = v
             continue
         if k not in DEFAULTS or v in ("", None):
@@ -132,6 +132,9 @@ def clean_options(options) -> dict:
             v = v if v in render.STYLES else DEFAULTS["style"]
         elif k == "layout":
             v = v if v in render.LAYOUTS else DEFAULTS["layout"]
+        elif k == "render":
+            v = str(v).lower()
+            v = v if v in hw.IDS else DEFAULTS["render"]
         else:                                    # range_start, range_end: seconds into the video
             v = float(v)
             if not math.isfinite(v) or v < 0:
@@ -207,6 +210,8 @@ def _load_file(f: Path, uid: str):
     job.setdefault("kind", "video")
     job.setdefault("creator", None)
     job.setdefault("options", {}).setdefault("captions", True)
+    job["options"].setdefault("hook_text", True)
+    job["options"].setdefault("render", "auto")
     if job.get("source_path"):
         job["source_path"] = _remap(job["source_path"], f.parent)
     if job.get("source", {}).get("path"):
@@ -219,6 +224,8 @@ def _load_file(f: Path, uid: str):
     buffered = job.get("kind") == "live" and any((f.parent / "buffer").glob("*.ts"))
     for c in job.get("clips", []):
         c.setdefault("captions", job["options"]["captions"])
+        c.setdefault("hook_text", job["options"].get("hook_text", True))
+        c.setdefault("render", job["options"].get("render", "auto"))
         if c.get("src"):
             c["src"] = _remap(c["src"], f.parent / "clips")
         if c.get("status") in ("rendering", "queued"):
@@ -288,7 +295,8 @@ def create(source: dict, options: dict, enqueue=True, creator=None, kind="video"
     c = creators.get(creator) if creator else None
     if c:
         d = creators.root(c["id"]) / ("live" if kind == "live" else "videos") / jid
-        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "captions")}}
+        base = {**DEFAULTS, **{k: c[k] for k in ("max_clips", "min_len", "max_len", "style", "layout", "captions",
+                                                "hook_text", "render")}}
     else:
         d, base, creator = config.user_dir(ctx.uid()) / "jobs" / jid, dict(DEFAULTS), None
     opts = {**base, **clean_options(options)}
@@ -346,8 +354,9 @@ def request_render(jid, cid, changes: dict):
     job = _jobs[jid]
     clip = next(c for c in job["clips"] if c["id"] == cid)
     new = dict(clip)
-    if "captions" in changes:
-        new.update(clean_options({"captions": changes["captions"]}))
+    for k in ("captions", "hook_text", "render"):
+        if k in changes:
+            new.update(clean_options({k: changes[k]}))
     for k in ("start", "end"):
         if k in changes:
             new[k] = round(float(changes[k]), 2)
@@ -756,7 +765,8 @@ def _run_job(job):
         for c in found:
             c.update(id=f"clip{len(job['clips']) + 1:02d}", start=round(c["start"] + shift, 2),
                      end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"],
-                     captions=o.get("captions", True), status="queued", version=0)
+                     captions=o.get("captions", True), hook_text=o.get("hook_text", True),
+                     render=o.get("render", "auto"), status="queued", version=0)
             # Only the gameplay layout uses a webcam, so it is only looked for then, and only once: a
             # stream with no webcam is not looked for again on every clip of it.
             if o["layout"] == "gameplay" and face is False:

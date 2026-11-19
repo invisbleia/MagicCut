@@ -62,6 +62,7 @@ def main() -> int:
                 ("answers that are not quite right", ["tests/test_answer.py"]),
                 ("knowing which game a stream is", ["tests/test_games.py"]),
                 ("finding the facecam in a gaming stream", ["tests/test_facecam.py"]),
+                ("the render core: GPU, CPU, and the hook text switch", ["tests/test_hw.py"]),
                 ("fresh installs: ffmpeg, the speech model, AI errors", ["tests/test_tools.py"]),
                 ("the storage folder: full drive, open, move", ["tests/test_storage.py"]),
                 ("security: visitor address, email addresses, Google sign-in, prompts", ["tests/test_hardening.py"]),

@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from . import admin as admins
 from . import account, load
-from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, posting,
+from . import (accounts, ai, alerts, auth, config, creators, ctx, db, hw, jobs, live, media, posting,
                profiles, render, safe, transcribe, usage)
 
 from . import tools as _tools  # noqa: E402
@@ -64,6 +64,9 @@ def _startup():
         except OSError:
             pass
     render.install_fonts()
+    # Look at the graphics card once, in the background, so the encoders are known before the first clip and the
+    # dashboard never waits for ffmpeg probes.
+    threading.Thread(target=lambda: _quiet(hw.detect), daemon=True).start()
     if _tools.missing():
         print("\n  " + _tools.HELP + "\n", flush=True)
     if not transcribe.REMOTE and config.env("PEAKCUT_FETCH_MODEL", "1") != "0":     # the speech model: fetched now, in the background, if it was never downloaded
@@ -577,7 +580,16 @@ def status(request: Request):
     return {"user": auth.public(me_), "update": updates.latest() if me_.is_admin else None, "accounts": config.ACCOUNTS, "disk_full": load.disk_full(), "no_ffmpeg": bool(_tools.missing()), "links": {"repo": config.REPO_URL, "follow": config.FOLLOW_URL}, "ai": usage.brief(), "unread": notices.unread(),
             "tour": not accounts.settings()["tour_done"],
             "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.PLATFORM_NAMES}, "max_upload_mb": config.MAX_UPLOAD_MB, "upload_part_mb": config.UPLOAD_PART_MB, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
-            "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS}
+            "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS,
+            "render": hw.summary()}
+
+
+@app.get("/api/hw")
+def hardware(scan: int = 0):
+    """The encoders this computer really has. scan=1 looks at the cards again, for a machine that just got a GPU."""
+    if scan:
+        hw.detect(force=True)
+    return {**hw.summary(), "encoders": [e for e in hw.summary()["encoders"]], "note": hw.explain("auto")}
 
 
 # ================================================================ videos
