@@ -1,32 +1,18 @@
-# PeakCut on Colab with a Tesla T4
+# PeakCut (MagicCut) on Colab with a Tesla T4
 
 The T4 is used for the **video encode**. Before this, every clip was made by the CPU (`libx264`)
 even on Colab, because PeakCut only knew how to ask Intel's QuickSync for hardware encoding.
 Now it asks ffmpeg what the machine really has — NVENC on the T4, QuickSync / AMF on a PC — and
 uses that, falling back to the CPU only when there is nothing else.
 
-Your notebook clones `haziqahmedqasmi/PeakCut` into Drive once, so the new code reaches Colab only
-after a `git push` from your GitHub account. Then the two cells below do the rest: the install cell
-puts an ffmpeg **with NVENC** on the PATH (Colab's own build usually has none), and the start cell
-writes the fresh ngrok URL into `.env` every run — or keeps one fixed URL if you give it your free
-static ngrok domain.
+Code: `https://github.com/invisbleia/MagicCut` (branch `main`). The repo is **private**, so Colab
+needs either a public repo or a `GITHUB_TOKEN` secret with read access — Cell 1 below handles both.
 
-## 0. Getting the new code into the clone
+## 0. Your clone
 
-The notebook clones your GitHub repo into Drive, so the clone only changes when the repo does. Either:
-
-- **Push from your own GitHub account** (the account that owns `haziqahmedqasmi/PeakCut`):
-  ```
-  cd C:\peakcut
-  git add -A
-  git commit -m "GPU render core (NVENC), hook text switch, readable selected states"
-  git push
-  ```
-  Cell 1 then does `git pull --ff-only` on every run.
-- **Or upload `peakcut-gpu.patch`** (in `C:\peakcut`) to Drive, then once in Colab:
-  ```
-  !cd /content/drive/MyDrive/peakcut && git apply /content/drive/MyDrive/peakcut-gpu.patch
-  ```
+The old Drive clone at `/content/drive/MyDrive/peakcut` points at the previous repo. Cell 1 clones
+MagicCut into `/content/drive/MyDrive/magiccut` instead; your videos and database stay where they
+are (`peakcut_data`), so nothing is lost. Delete the old folder whenever you like.
 
 ## Cell 1 — dependencies (mount, pull, ffmpeg with NVENC, wheels)
 
@@ -37,23 +23,32 @@ import os, subprocess
 
 drive.mount('/content/drive')
 
-REPO_PATH = '/content/drive/MyDrive/peakcut'
+REPO_URL = "https://github.com/invisbleia/MagicCut.git"
+REPO_PATH = '/content/drive/MyDrive/magiccut'
 
-# 2. Clone once; on later runs just update it (your new GPU code arrives this way)
+# Private repo? Put a GitHub token (fine-grained, Contents: Read) in Colab Secrets as GITHUB_TOKEN.
+try:
+    from google.colab import userdata
+    GH_TOKEN = userdata.get('GITHUB_TOKEN') or ""
+except Exception:
+    GH_TOKEN = ""
+clone_url = REPO_URL.replace("https://", f"https://{GH_TOKEN}@") if GH_TOKEN else REPO_URL
+
+# 2. Clone once; later runs update it (this is how new code arrives)
 if not os.path.exists(REPO_PATH):
-    print(f"Cloning PeakCut into Google Drive: {REPO_PATH}...")
-    !git clone https://github.com/haziqahmedqasmi/peakcut "{REPO_PATH}"
+    print(f"Cloning MagicCut into Google Drive: {REPO_PATH}...")
+    !git clone "{clone_url}" "{REPO_PATH}"
 else:
     print(f"Already cloned at {REPO_PATH}, updating...")
-    !cd "{REPO_PATH}" && git pull --ff-only
+    !cd "{REPO_PATH}" && git remote set-url origin "{clone_url}" && git pull --ff-only
 
 # 3. Is there really a GPU?
 print(subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total,driver_version",
                       "--format=csv,noheader"], capture_output=True, text=True).stdout.strip()
       or "No NVIDIA GPU: Runtime > Change runtime type > T4 GPU")
 
-# 4. ffmpeg that HAS NVENC. Colab's apt ffmpeg usually does not, and without it every clip
-#    silently renders on the CPU. Static build from johnvansickle.com has NVENC + NVDEC.
+# 4. ffmpeg that HAS NVENC. Colab's apt ffmpeg usually has none, and without it every clip
+#    silently renders on the CPU. The static build has NVENC + NVDEC.
 enc = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
 if "h264_nvenc" not in enc:
     print("Installing a static ffmpeg build with NVENC...")
@@ -61,9 +56,9 @@ if "h264_nvenc" not in enc:
     !tar -xJf /tmp/ff.tar.xz -C /tmp
     !install -m 0755 /tmp/ffmpeg-*-static/ffmpeg /usr/local/bin/ffmpeg
     !install -m 0755 /tmp/ffmpeg-*-static/ffprobe /usr/local/bin/ffprobe
+
 enc = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
 print("NVENC:", "yes" if "h264_nvenc" in enc else "NO (clips will use the CPU)")
-# one real probe of the card, the same three-frame test PeakCut runs
 probe = subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i",
                         "color=c=black:s=320x240:d=0.2:r=30", "-frames:v", "3",
                         "-c:v", "h264_nvenc", "-f", "null", "-"], capture_output=True, text=True)
@@ -105,18 +100,18 @@ except exception.PyngrokNgrokError as e:
     if "already set" not in str(e):
         raise
 
-# Optional: one permanent URL. Copy the free static domain from dashboard.ngrok.com
-# (Domains) and save it as a secret named NGROK_DOMAIN.
+# Optional: one permanent URL. Copy your free static domain from dashboard.ngrok.com
+# (Domains) and save it as a secret named NGROK_DOMAIN, e.g. quiet-fox-123.ngrok-free.app
 try:
     STATIC_DOMAIN = userdata.get('NGROK_DOMAIN') or ""
 except Exception:
     STATIC_DOMAIN = ""
 
-ngrok.kill()                       # a dead tunnel from the last run would hold the port/domain
+ngrok.kill()          # a dead tunnel from the last run would hold the port/domain
 public_url = (ngrok.connect(8765, domain=STATIC_DOMAIN) if STATIC_DOMAIN else ngrok.connect(8765)).public_url
 print(f"Ngrok tunnel: {public_url}")
 
-repo_path = '/content/drive/MyDrive/peakcut'
+repo_path = '/content/drive/MyDrive/magiccut'
 if not os.path.exists(repo_path):
     raise FileNotFoundError(f"Repository not found at {repo_path}. Run the install cell first.")
 
@@ -144,7 +139,7 @@ process = subprocess.Popen(
     stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, env=env_config,
 )
 
-# Wait until it answers, then say which encoder it picked.
+# Wait until it answers, then print which encoder it picked
 import json, urllib.request
 for _ in range(30):
     try:
@@ -168,18 +163,17 @@ except KeyboardInterrupt:
     print("\nStopped watching logs. The server is still running.")
 ```
 
-## What changed for the GPU
+## What is in this build
 
 - `studio/hw.py` (new): asks ffmpeg to encode three frames with NVENC / QuickSync / AMF /
   VideoToolbox and remembers what worked. A card that claims an encoder but fails costs one clip,
   never every clip.
-- `studio/render.py`: picks the encoder per clip — Auto = the best hardware here, CPU if none.
-- `studio/jobs.py`, `studio/creators.py`, `studio/live.py`: the options `render` and `hook_text`
-  travel with every job and clip.
-- `web/index.html`: **Options → Render core** shows what this machine can do (greyed out cards carry
-  the reason on hover), plus the **Hook text** switch and the **GTA 6 preset** chip.
-- `studio/config.py`: `PEAKCUT_BASE_URL` is accepted as another name for `PEAKCUT_PUBLIC_URL`, so an
-  older `.env` keeps working.
+- `studio/render.py`: NVENC at `p7`, `cq 19`, spatial AQ, 20 Mbps for clean 1080p; picks the encoder
+  per clip — Auto = the best hardware here, CPU if none.
+- Up to **50 clips** per video (was 20).
+- **Techno Gamerz preset**: gameplay + facecam layout, hype captions, 1080p, hook on, 20 clips of
+  15–45 s. The **GTA 6 preset** chip is still there.
+- `Hook text` switch (dashboard and clip dialog), readable selected states, Hinglish captions.
 
 ## Checking it is really on the T4
 

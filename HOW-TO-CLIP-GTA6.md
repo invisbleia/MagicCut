@@ -1,4 +1,4 @@
-﻿# PeakCut on this PC â€” how to clip GTA 6
+# PeakCut on this PC â€” how to clip GTA 6
 
 Installed at `C:\peakcut`. Start it with the **PeakCut** shortcut on the desktop (or
 `C:\peakcut\Start PeakCut.bat`). The dashboard opens at http://127.0.0.1:8765 â€”
@@ -56,7 +56,9 @@ does not fake a reaction.
 ## 4. A 1080p clip in one click: the GTA 6 preset
 
 The **GTA 6 preset** chip above the box sets hype captions, the gameplay layout, 1080p and the
-hook on, which is the short list in `GAMING.md` in one press. Then **Make clips**.
+hook on, which is the short list in `GAMING.md` in one press. The **Techno Gamerz preset** is the
+Minecraft/GTA version: gameplay + facecam, hype captions, 1080p, hook on, 20 clips of 15-45 s.
+**How many** goes up to 50 clips per video. Then **Make clips**.
 
 Two switches on the clip itself:
 
