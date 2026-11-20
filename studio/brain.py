@@ -389,9 +389,9 @@ NOT_MUST = "Most checks should return []. Only return a moment you would stop sc
 
 FACE_CAM = """One frame of a gaming stream is attached.
 
-Look closely at the entire frame, especially the four corners (top-right, top-left, bottom-right, bottom-left) and edges.
+Look closely at the entire frame, especially the corners (top-right, top-left, bottom-right, bottom-left) and edges.
 Streamers place their webcam / facecam overlay showing their real face (a person filmed by a camera with headphones/microphone/chair) on top of the game.
-Is the streamer's own webcam/facecam present on this frame?
+Identify the EXACT bounding box of only the webcam picture frame (do NOT include any game background, building or road above/below it).
 
 Answer in one line and nothing else:
   CAM x=..% y=..% w=..% h=..%     the webcam picture, as percentages (0-100%) of the whole frame; x,y is top-left corner, w is width, h is height

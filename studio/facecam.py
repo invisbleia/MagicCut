@@ -365,9 +365,21 @@ def detect(path: str | Path, ask=None) -> dict | None:
         seen = _seen(path, hinted, w, h, still, light)
         if seen:
             return seen
-        # If AI detected a facecam box, trust the AI box directly so we never lose facecam
+        # If AI detected a facecam box, snap its borders to real edges or take it cleanly
         hx, hy, hw, hh = hinted
         if hw > 0.05 and hh > 0.05:
+            snapped = _snap(path, (hx * W, hy * H, (hx + hw) * W, (hy + hh) * H), w, h, span=0.08)
+            if snapped and snapped[2] - snapped[0] > w * MIN_SIZE and snapped[3] - snapped[1] > h * MIN_SIZE:
+                sx0, sy0, sx1, sy1 = snapped
+                return {
+                    "x": int(round(sx0)),
+                    "y": int(round(sy0)),
+                    "w": int(round(sx1 - sx0)),
+                    "h": int(round(sy1 - sy0)),
+                    "corner": _corner(sx0, sy0, sx1, sy1, w, h),
+                    "score": 1.0,
+                    "conf": "high",
+                }
             return {
                 "x": int(round(hx * w)),
                 "y": int(round(hy * h)),
