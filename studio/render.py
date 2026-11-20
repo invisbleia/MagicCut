@@ -251,15 +251,22 @@ PIP_MARGIN = 26
 
 def _filter(layout, fg_h, facecam=None):
     if layout == "facecam_half":
-        # 40% height for facecam (768px), 60% height for gameplay (1152px) out of 1920
-        # This keeps the streamer face clear on top while giving ample room for gameplay below
-        fc_h = 768
+        # 45% height for facecam (860px), 55% height for gameplay (1060px) out of 1920
+        # Streamer facecam is framed cleanly, and gameplay has generous room below
+        fc_h = 860
         game_h = H - fc_h
         if facecam and len(facecam) == 4 and int(facecam[2]) > 8 and int(facecam[3]) > 8:
             fx, fy, fw, fh = (int(v) for v in facecam)
+            # Inset by 5% to remove any outside border/game bleed (such as background buildings/margins)
+            pad_x = max(2, int(fw * 0.05))
+            pad_y = max(2, int(fh * 0.06))
+            c_fx = fx + pad_x
+            c_fy = fy + pad_y
+            c_fw = max(16, fw - 2 * pad_x)
+            c_fh = max(16, fh - 2 * pad_y)
             # Remove facecam area from game view so the bottom half does not show a duplicate webcam
             return (f"[0:v]fps={config.OUT_FPS},split=2[fc_src][game_raw];"
-                    f"[fc_src]crop={fw}:{fh}:{fx}:{fy},scale={W}:{fc_h}:force_original_aspect_ratio=increase,crop={W}:{fc_h},setsar=1[top];"
+                    f"[fc_src]crop={c_fw}:{c_fh}:{c_fx}:{c_fy},scale={W}:{fc_h}:force_original_aspect_ratio=increase,crop={W}:{fc_h},setsar=1[top];"
                     f"[game_raw]delogo=x={fx}:y={fy}:w={fw}:h={fh},scale={W}:{game_h}:force_original_aspect_ratio=increase,crop={W}:{game_h},setsar=1[bot];"
                     f"[top][bot]vstack=inputs=2[v0];")
         return (f"[0:v]fps={config.OUT_FPS},split=2[top_src][game_src];"
