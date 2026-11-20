@@ -374,6 +374,10 @@ def request_render(jid, cid, changes: dict):
         new["style"] = DEFAULTS["style"]
     if new.get("layout") not in render.LAYOUTS:
         new["layout"] = DEFAULTS["layout"]
+    if new.get("layout") in ("gameplay", "facecam_half") and not new.get("facecam"):
+        fc = job.get("facecam") or _facecam(job)
+        if fc:
+            new["facecam"] = fc
     clip.update(new, status="queued")
     save(job)
     _q.put(("clip", jid, cid))
@@ -390,7 +394,13 @@ def render_one(job, clip, words):
         src = Path(clip["src"]) if clip.get("src") else Path(job["source_path"])
         if not clip.get("src"):
             clip["end"] = min(clip["end"], job["duration"])
-        local = dict(clip, start=clip["start"] - off, end=clip["end"] - off, hook=roman.to_roman(clip.get("hook") or ""))
+        face = clip.get("facecam") or job.get("facecam")
+        if not face and clip.get("layout") in ("gameplay", "facecam_half"):
+            face = _facecam(job)
+            if face:
+                clip["facecam"] = face
+        local = dict(clip, start=clip["start"] - off, end=clip["end"] - off,
+                     hook=roman.to_roman(clip.get("hook") or ""), facecam=face)
         near = _caption_words(job, clip, words, off) if clip.get("captions", True) else []
         out = render.render_clip(src, d / "clips", clip["id"], local, near, job["width"], job["height"])
         clip.update(out, status="done", version=clip.get("version", 0) + 1, error=None)
@@ -776,9 +786,9 @@ def _run_job(job):
                      end=round(c["end"] + shift, 2), style=o["style"], layout=o["layout"],
                      captions=o.get("captions", True), hook_text=o.get("hook_text", True),
                      render=o.get("render", "auto"), status="queued", version=0)
-            # Only the gameplay layout uses a webcam, so it is only looked for then, and only once: a
+            # Only layouts with facecam use a webcam, so it is only looked for then, and only once: a
             # stream with no webcam is not looked for again on every clip of it.
-            if o["layout"] == "gameplay" and face is False:
+            if o["layout"] in ("gameplay", "facecam_half") and face is False:
                 face = _facecam(job)
             if face:
                 c["facecam"] = face
