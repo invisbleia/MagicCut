@@ -293,6 +293,7 @@ def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=
         t += WINDOW_SEC - OVERLAP_SEC
     per_window = max(2, min(8, int(np.ceil(max_clips * 1.5 / len(windows))) + 1))
     extra = _game_rules(game)
+    # Try AI with per-window error logging and up to 2 retries
     for a, b in windows:
         chunk = [l for l in lines if a <= l["s"] < b]
         if len(chunk) < 3:
@@ -301,7 +302,7 @@ def find_clips(words, db, duration, title="", uploader="", max_clips=6, min_len=
                   + extra
                   + RULES.format(min_len=min_len, max_len=max_len, transcript=_fmt(chunk)))
         try:
-            out, used_model, spent = ask_ai(prompt, purpose="Video: finding clips")
+            out, used_model, spent = ask_ai(prompt, purpose="Video: finding clips", timeout=300)
             tokens += spent
             found += [c for c in out if isinstance(c, dict) and a - 5 <= float(c.get("start", -1)) < b]
         except Exception as e:  # noqa: BLE001

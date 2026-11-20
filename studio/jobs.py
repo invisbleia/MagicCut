@@ -556,7 +556,7 @@ def _facecam(job) -> list | None:
         box = facecam.detect(path, ask=brain.look_for_facecam)
     except Exception:  # noqa: BLE001 - a missing facecam is not a failure
         return None
-    if not box or box.get("conf") != "high":
+    if not box or box.get("conf") not in ("high", "ai", "medium"):
         return None
     job["facecam"] = [box["x"], box["y"], box["w"], box["h"]]
     return job["facecam"]

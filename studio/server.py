@@ -223,7 +223,14 @@ class Compress:
 
     async def __call__(self, scope, receive, send):
         path = scope.get("path", "") if scope["type"] == "http" else ""
-        media = path.startswith(("/media/", "/api/upload")) or path.endswith((".mp4", ".jpg", ".png", ".webp", ".ico"))
+        # Skip GZipMiddleware for media, uploads, range requests, or responses that stream files
+        headers = dict(scope.get("headers") or [])
+        has_range = b"range" in headers
+        media = (
+            has_range
+            or path.startswith(("/media/", "/api/upload"))
+            or path.endswith((".mp4", ".jpg", ".png", ".webp", ".ico", ".zip"))
+        )
         await (self.plain if scope["type"] != "http" or media else self.gzip)(scope, receive, send)
 
 

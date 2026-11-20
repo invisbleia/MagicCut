@@ -362,6 +362,18 @@ def detect(path: str | Path, ask=None) -> dict | None:
         seen = _seen(path, hinted, w, h, still, light)
         if seen:
             return seen
+        # If AI gave a box but it landed on nothing and found had candidates, carry on with found
+        if not found:
+            hx, hy, hw, hh = hinted
+            if hw > 0.05 and hh > 0.05:
+                return {
+                    "x": int(round(hx * w)),
+                    "y": int(round(hy * h)),
+                    "w": int(round(hw * w)),
+                    "h": int(round(hh * h)),
+                    "score": 1.0,
+                    "conf": "high",
+                }
     if not found:
         return None
     return _finish(path, found[0], w, h, still)
