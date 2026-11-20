@@ -281,11 +281,14 @@ def _finish(path: str | Path, found: dict, w: int, h: int, still: np.ndarray) ->
             "corner": _corner(x0, y0, x1, y1, w, h), "score": found.get("score", 0.0), "conf": conf}
 
 
-def _frame_jpeg(path: str | Path, width: int = 768) -> bytes:
+def _frame_jpeg(path: str | Path, width: int = 1024) -> bytes:
     """One frame of the stream, small, as a JPEG: what a model is shown."""
     try:
+        dur = _duration(path)
+        # Sample slightly into the stream (e.g. 25% or 30s) where streamer setup/webcam is active
+        ts = max(5.0, min(30.0, dur * 0.25)) if dur > 10 else max(0.0, dur / 2.0)
         return subprocess.run(
-            ["ffmpeg", "-v", "error", "-ss", f"{max(0.0, _duration(path) / 2.0):.1f}", "-i", str(path),
+            ["ffmpeg", "-v", "error", "-ss", f"{ts:.1f}", "-i", str(path),
              "-frames:v", "1", "-vf", f"scale={width}:-2", "-pix_fmt", "yuvj420p", "-q:v", "4",
              "-f", "image2pipe", "-vcodec", "mjpeg", "-"],
             capture_output=True, timeout=120).stdout or b""
@@ -362,18 +365,18 @@ def detect(path: str | Path, ask=None) -> dict | None:
         seen = _seen(path, hinted, w, h, still, light)
         if seen:
             return seen
-        # If AI gave a box but it landed on nothing and found had candidates, carry on with found
-        if not found:
-            hx, hy, hw, hh = hinted
-            if hw > 0.05 and hh > 0.05:
-                return {
-                    "x": int(round(hx * w)),
-                    "y": int(round(hy * h)),
-                    "w": int(round(hw * w)),
-                    "h": int(round(hh * h)),
-                    "score": 1.0,
-                    "conf": "high",
-                }
+        # If AI detected a facecam box, trust the AI box directly so we never lose facecam
+        hx, hy, hw, hh = hinted
+        if hw > 0.05 and hh > 0.05:
+            return {
+                "x": int(round(hx * w)),
+                "y": int(round(hy * h)),
+                "w": int(round(hw * w)),
+                "h": int(round(hh * h)),
+                "corner": _corner(hx * w, hy * h, (hx + hw) * w, (hy + hh) * h, w, h),
+                "score": 1.0,
+                "conf": "high",
+            }
     if not found:
         return None
     return _finish(path, found[0], w, h, still)

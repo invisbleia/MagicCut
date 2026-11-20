@@ -389,15 +389,15 @@ NOT_MUST = "Most checks should return []. Only return a moment you would stop sc
 
 FACE_CAM = """One frame of a gaming stream is attached.
 
-A streamer often puts a small picture of their own webcam in a corner of the stream, next to the game.
-Is the streamer's own face on this frame? A real person, filmed by a camera, sitting in a room. Not a
-character in the game, not a picture inside a game menu, not someone in a video the game is playing.
+Look closely at the entire frame, especially the four corners (top-right, top-left, bottom-right, bottom-left) and edges.
+Streamers place their webcam / facecam overlay showing their real face (a person filmed by a camera with headphones/microphone/chair) on top of the game.
+Is the streamer's own webcam/facecam present on this frame?
 
 Answer in one line and nothing else:
-  CAM x=..% y=..% w=..% h=..%     the webcam picture, as parts of the whole frame; x,y is its top left corner
-  NO CAM                         there is no webcam on this frame"""
+  CAM x=..% y=..% w=..% h=..%     the webcam picture, as percentages (0-100%) of the whole frame; x,y is top-left corner, w is width, h is height
+  NO CAM                         there is absolutely no streamer webcam on this frame"""
 
-_FACE_BOX = re.compile(r"x\s*=\s*(\d+(?:\.\d+)?)\s*%?\s*,?\s*y\s*=\s*(\d+(?:\.\d+)?)\s*%?\s*"
+_FACE_BOX = re.compile(r"(?:CAM|BOX)?\s*x\s*=\s*(\d+(?:\.\d+)?)\s*%?\s*,?\s*y\s*=\s*(\d+(?:\.\d+)?)\s*%?\s*"
                        r",?\s*w\s*=\s*(\d+(?:\.\d+)?)\s*%?\s*,?\s*h\s*=\s*(\d+(?:\.\d+)?)", re.I)
 
 

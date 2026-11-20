@@ -138,7 +138,7 @@ def geometry(src_w, src_h, layout):
     if layout in ("crop", "gameplay"):
         return layout, fg_h, 300, 1380
     if layout == "facecam_half":
-        return layout, fg_h, 1000, 1500
+        return layout, fg_h, 820, 1500
     return layout, fg_h, max(230, top - 190), min(1640, top + fg_h + 180)
 
 
@@ -251,17 +251,20 @@ PIP_MARGIN = 26
 
 def _filter(layout, fg_h, facecam=None):
     if layout == "facecam_half":
-        half_h = H // 2
+        # 40% height for facecam (768px), 60% height for gameplay (1152px) out of 1920
+        # This keeps the streamer face clear on top while giving ample room for gameplay below
+        fc_h = 768
+        game_h = H - fc_h
         if facecam and len(facecam) == 4 and int(facecam[2]) > 8 and int(facecam[3]) > 8:
             fx, fy, fw, fh = (int(v) for v in facecam)
             # Remove facecam area from game view so the bottom half does not show a duplicate webcam
             return (f"[0:v]fps={config.OUT_FPS},split=2[fc_src][game_raw];"
-                    f"[fc_src]crop={fw}:{fh}:{fx}:{fy},scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[top];"
-                    f"[game_raw]delogo=x={fx}:y={fy}:w={fw}:h={fh},scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[bot];"
+                    f"[fc_src]crop={fw}:{fh}:{fx}:{fy},scale={W}:{fc_h}:force_original_aspect_ratio=increase,crop={W}:{fc_h},setsar=1[top];"
+                    f"[game_raw]delogo=x={fx}:y={fy}:w={fw}:h={fh},scale={W}:{game_h}:force_original_aspect_ratio=increase,crop={W}:{game_h},setsar=1[bot];"
                     f"[top][bot]vstack=inputs=2[v0];")
         return (f"[0:v]fps={config.OUT_FPS},split=2[top_src][game_src];"
-                f"[top_src]crop=iw:ih/2:0:0,scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[top];"
-                f"[game_src]crop=iw:ih/2:0:ih/2,scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[bot];"
+                f"[top_src]crop=iw:ih/2:0:0,scale={W}:{fc_h}:force_original_aspect_ratio=increase,crop={W}:{fc_h},setsar=1[top];"
+                f"[game_src]crop=iw:ih/2:0:ih/2,scale={W}:{game_h}:force_original_aspect_ratio=increase,crop={W}:{game_h},setsar=1[bot];"
                 f"[top][bot]vstack=inputs=2[v0];")
     if layout == "gameplay" and facecam:
         # The game fills the screen, and the webcam sits in the top corner of it, so a viewer sees
