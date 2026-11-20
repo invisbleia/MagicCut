@@ -428,7 +428,8 @@ def _openai(model, prompt, schema, timeout=None):
         _fail(r, model)
     data = _openai_body(r)
     u = data.get("usage") or {}
-    return _parse(data["choices"][0]["message"].get("content")), int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
+    parsed = _parse(data["choices"][0]["message"].get("content"))
+    return parsed, int(u.get("prompt_tokens") or 0), int(u.get("completion_tokens") or 0)
 
 
 def _anthropic(model, prompt, schema, timeout=None):

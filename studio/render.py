@@ -93,7 +93,8 @@ def install_fonts():
 
 
 LAYOUTS = {"blur": "Full frame + blurred fill", "zoom": "Zoomed in + blurred fill", "crop": "Fill the screen (centre crop)",
-           "gameplay": "Gameplay fills the screen, facecam in the corner"}
+           "gameplay": "Gameplay fills the screen, facecam in the corner",
+           "facecam_half": "Facecam (top half) + Gameplay (bottom half)"}
 
 
 def _ts(t):
@@ -136,6 +137,8 @@ def geometry(src_w, src_h, layout):
     top = (H - fg_h) // 2
     if layout in ("crop", "gameplay"):
         return layout, fg_h, 300, 1380
+    if layout == "facecam_half":
+        return layout, fg_h, 1000, 1500
     return layout, fg_h, max(230, top - 190), min(1640, top + fg_h + 180)
 
 
@@ -247,6 +250,18 @@ PIP_MARGIN = 26
 
 
 def _filter(layout, fg_h, facecam=None):
+    if layout == "facecam_half":
+        half_h = H // 2
+        if facecam and len(facecam) == 4 and int(facecam[2]) > 8 and int(facecam[3]) > 8:
+            fx, fy, fw, fh = (int(v) for v in facecam)
+            return (f"[0:v]fps={config.OUT_FPS},split=2[fc_src][game_src];"
+                    f"[fc_src]crop={fw}:{fh}:{fx}:{fy},scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[top];"
+                    f"[game_src]scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[bot];"
+                    f"[top][bot]vstack=inputs=2[v0];")
+        return (f"[0:v]fps={config.OUT_FPS},split=2[top_src][game_src];"
+                f"[top_src]scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[top];"
+                f"[game_src]scale={W}:{half_h}:force_original_aspect_ratio=increase,crop={W}:{half_h},setsar=1[bot];"
+                f"[top][bot]vstack=inputs=2[v0];")
     if layout == "gameplay" and facecam:
         # The game fills the screen, and the webcam sits in the top corner of it, so a viewer sees
         # the play and the face at the same time.
@@ -259,8 +274,8 @@ def _filter(layout, fg_h, facecam=None):
                     f"[b][p]overlay={W - PIP_W - PIP_MARGIN}:{PIP_MARGIN}[v0];")
     if layout == "crop":
         return f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[v0];"
-    # "gameplay" without a found facecam used to fall back to a centre crop, which is exactly what cuts a
-    # small webcam in the corner out of the picture. The whole frame with a blurred fill keeps it visible.
+    if layout == "gameplay" and not facecam:
+        return f"[0:v]fps={config.OUT_FPS},scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[v0];"
     return (f"[0:v]fps={config.OUT_FPS},split=2[a][b];"
             f"[a]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=6:2,"
             f"scale={W}:{H},eq=brightness=-0.14:saturation=1.15[bg];"
